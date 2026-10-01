@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101627">
+  <meta name="description" content="界络祈愿：校园角色抽卡测试版，支持学科卡池、80抽SSR保底和能量碎片兑换。">
+  <title>界络祈愿 · 校园抽卡测试版</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <script src="engine.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="界络祈愿首页"><span class="brand-mark" aria-hidden="true">✦</span><span>界络祈愿<small>JIELUO WISH</small></span></a>
+      <div class="edition">校园测试版 <span>V1.0</span></div>
+      <div class="sidebar-label">选择祈愿卡池</div>
+      <nav id="pool-nav" class="pool-nav" aria-label="祈愿卡池"></nav>
+      <div class="sidebar-foot"><span class="tiny-star" aria-hidden="true">✧</span><p>每一次祈愿，<br>都是新的相遇。</p><button class="text-button" id="rules-button">查看祈愿规则 <span aria-hidden="true">↗</span></button><div class="local-note">本机保存 · 无需联网</div></div>
+    </aside>
+    <main>
+      <header class="topbar"><div><span class="eyebrow">校园祈愿计划</span><h1>祈愿大厅 <span class="heading-star" aria-hidden="true">✧</span></h1></div><div class="ticket-wallet"><span class="ticket-icon" aria-hidden="true">✦</span><span>抽卡机会<strong id="ticket-count">—</strong></span></div></header>
+      <section class="identity-panel" aria-labelledby="identity-heading">
+        <div class="identity-title"><span class="identity-icon" aria-hidden="true">♙</span><div><h2 id="identity-heading">祈愿者信息</h2><p id="identity-status">填写信息，开启你的祈愿</p></div></div>
+        <form id="identity-form">
+          <label>任课老师<input id="teacher" name="teacher" required maxlength="30" placeholder="请输入老师姓名" autocomplete="off"></label>
+          <label>班级<input id="classroom" name="classroom" required maxlength="30" placeholder="例如：七年级 1 班" autocomplete="off"></label>
+          <label>学生姓名<input id="student" name="student" required maxlength="30" placeholder="请输入学生姓名" autocomplete="off"></label>
+          <button type="submit" class="save-button">保存信息</button>
+        </form>
+      </section>
+      <section class="wish-banner" id="wish-banner" aria-labelledby="pool-title">
+        <div class="banner-grid" aria-hidden="true"></div><div class="orbit orbit-one" aria-hidden="true"></div><div class="orbit orbit-two" aria-hidden="true"></div><span class="banner-spark spark-one" aria-hidden="true">✦</span><span class="banner-spark spark-two" aria-hidden="true">✧</span>
+        <div class="banner-copy"><div class="pool-tag" id="pool-tag">学科常驻祈愿</div><p class="banner-kicker" id="pool-kicker">ENGLISH WISH</p><h2 id="pool-title">英语卡池</h2><p class="pool-description" id="pool-description">本期 SSR：布蕾兹双卡面 · SR：四格漫画书签。</p><div class="character-chips" id="character-chips"></div><div class="rarity-legend"><span class="rarity-ssr">SSR</span><span class="rarity-sr">SR</span><span class="rarity-r">R</span><span>三种稀有度 · 80 抽 SSR 大保底</span></div></div>
+        <div id="featured-cards" class="featured-cards" aria-label="当前卡池精选卡面"></div>
+        <div class="banner-caption">与你的下一次相遇 <span aria-hidden="true">✦</span></div>
+      </section>
+      <section class="wish-controls" aria-label="抽卡进度与操作">
+        <div class="stats-row"><div class="stat"><span>当前卡池</span><strong id="current-pool">英语卡池</strong></div><div class="stat"><span>累计抽卡次数 <small>全部卡池</small></span><strong><span id="total-count">0</span><small>抽</small></strong></div><div class="stat pity-stat"><span>距离 SSR 大保底</span><strong><span id="pity-remaining">80</span><small>抽</small><span class="guarantee-tag">必得 SSR</span></strong></div></div>
+        <div class="pity-track"><div class="pity-text"><span>本卡池保底进度</span><span id="pity-label">0 / 80</span></div><progress id="pity-progress" max="80" value="0" aria-label="本卡池SSR保底进度">0 / 80</progress></div>
+        <div class="draw-row"><p id="draw-hint">保存完整学生信息后，即可开始祈愿。<small>测试版初始赠送 100 次抽卡机会</small></p><div class="draw-actions"><button id="draw-one" class="draw-button single" disabled><span aria-hidden="true">✧</span><span>祈愿 1 次<small>消耗 1 次机会</small></span></button><button id="draw-ten" class="draw-button ten" disabled><span aria-hidden="true">✦</span><span>祈愿 10 次<small>消耗 10 次机会</small></span></button></div></div>
+      </section>
+      <section class="bottom-grid">
+        <div class="collection-panel"><div class="panel-heading"><div class="view-tabs" role="tablist" aria-label="卡牌与记录"><button id="collection-tab" role="tab" aria-selected="true" aria-controls="collection-content" tabindex="0">我的卡牌 <span id="collection-count">0</span></button><button id="history-tab" role="tab" aria-selected="false" aria-controls="history-content" tabindex="-1">祈愿记录</button></div><span class="panel-caption" id="panel-caption">角色卡 / 书签卡</span></div><div id="collection-content" role="tabpanel" aria-labelledby="collection-tab"></div><div id="history-content" role="tabpanel" aria-labelledby="history-tab" hidden></div></div>
+        <div class="fragment-panel"><div class="fragment-heading"><span class="fragment-symbol" aria-hidden="true">◈</span><h2>能量碎片</h2></div><div class="fragment-amount"><span id="fragment-count">0</span><span>枚</span></div><p>重复 R / SR 转化为 1 枚<br>重复 SSR 转化为 2 枚</p><button id="exchange-button" disabled>10 枚碎片兑换 1 次祈愿</button><small id="exchange-hint">还需 10 枚碎片即可兑换</small></div>
+      </section>
+      <footer>界络祈愿 <span>✦</span> 校园测试版 · 部分角色卡面待补充</footer>
+    </main>
+  </div>
+  <dialog id="result-dialog" class="result-dialog" aria-labelledby="result-title"><div class="dialog-header"><div><span class="eyebrow">WISH REVEALED</span><h2 id="result-title">祈愿结果</h2></div><button class="close-button" id="close-results" aria-label="关闭祈愿结果">×</button></div><div id="result-cards" class="result-cards"></div><p class="result-summary" id="result-summary"></p><button class="primary-button" id="finish-results">收下这次相遇</button></dialog>
+  <dialog id="rules-dialog" class="rules-dialog" aria-labelledby="rules-title"><div class="dialog-header"><h2 id="rules-title">祈愿规则</h2><button class="close-button" id="close-rules" aria-label="关闭祈愿规则">×</button></div><div class="rule-list"><p><strong>卡池内容</strong>本期英语池：R 为狸谱、布蕾兹；SR 为书签卡 01、02、03，三款等概率出现，不区分角色；SSR 仅为布蕾兹，单人版与组合场景版卡面等概率出现。本期数学池：R 为乐游、狸谱；SR 仅为狸谱，两张卡面等概率出现；SSR 仅为乐游。本期语文池：R 为狸谱、李岩；SR 仅为狸谱；SSR 仅为李岩。限定活动：全部四位角色，均可出现 R、SR、SSR。同卡池、同稀有度内的可用卡牌等概率出现。</p><p><strong>稀有度与保底</strong>基础概率为 R 80%、SR 18%、SSR 2%。每个卡池独立计算保底，连续 79 抽未获得 SSR，第 80 抽必得 SSR；提前获得 SSR 会重置该卡池进度。十连逐抽计算，切换卡池会保留进度。</p><p><strong>重复卡与兑换</strong>角色卡按同角色、同稀有度判定重复；书签按同款编号判定重复，01、02、03 分别收藏。各卡池共用卡牌收藏。同角色、同稀有度的不同卡面也按同一张卡判定重复。重复 R / SR 自动转为 1 枚碎片，重复 SSR 转为 2 枚。每 10 枚碎片兑换 1 次抽卡机会，兑换不会增加抽数或保底进度。</p><p><strong>测试版使用方式</strong>任课老师、班级、学生姓名共同区分一份档案。首次保存赠送 100 次机会；相同信息再次保存会继续已有进度，不会重复赠送。更换信息后请先保存再抽卡。</p><p><strong>数据保存在本机</strong>数据只保存在当前浏览器，不会上传。更换浏览器、设备或访问地址不能共用记录；清理浏览器数据会移除档案。本版无账号登录与跨设备同步。</p></div><button class="primary-button" id="acknowledge-rules">知道了</button></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="bookmark-dialog" class="bookmark-dialog" aria-labelledby="bookmark-title"><div class="dialog-header"><h2 id="bookmark-title">四格漫画书签</h2><button class="close-button" id="close-bookmark" aria-label="关闭完整书签">×</button></div><img id="bookmark-image" alt=""></dialog>
+  <noscript><div class="noscript">请在浏览器中启用 JavaScript 后使用界络祈愿。</div></noscript>
+</body>
+</html>
