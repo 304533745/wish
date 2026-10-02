@@ -1,2 +1,8 @@
 tests/.tmp/
 tests/artifacts/
+node_modules/
+.cache/
+dist/
+build/icon.ico
+build/icon.png
+build/asset-manifest.json

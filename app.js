@@ -2,12 +2,17 @@
   'use strict';
   const E = window.WishEngine;
   const STORAGE_KEY = 'jieluo-wish-v1';
+  const storage = window.wishDesktop ? { getItem: () => window.wishDesktop.loadState(), setItem: (_key, raw) => window.wishDesktop.saveState(raw) } : localStorage;
+  if (window.wishDesktop) {
+    const dataRule = [...document.querySelectorAll('#rules-dialog .rule-list p')].find(p => p.querySelector('strong')?.textContent === '数据保存在本机');
+    if (dataRule) dataRule.innerHTML = '<strong>数据保存在本机</strong>数据保存在当前 Windows 用户的数据目录，关闭、重启和升级软件后可继续使用。可通过窗口菜单“数据”导出或导入备份。更换电脑时需要迁移备份。本版无账号登录与跨设备同步。';
+  }
   const $ = id => document.getElementById(id);
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
   let storageError = '', toastTimer, busy = false, dirty = false, view = 'collection';
   let database = { version: 1, activeKey: null, selectedPool: 'english', profiles: {} };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     if (raw) {
       const stored = JSON.parse(raw);
       if (stored.version !== 1 || !stored.profiles || typeof stored.profiles !== 'object' || Array.isArray(stored.profiles) || !Object.entries(stored.profiles).every(([key, value]) => E.isValidProfile(value) && key === E.identityKey(value.info)) || (stored.activeKey !== null && !Object.hasOwn(stored.profiles, stored.activeKey)) || !E.POOLS[stored.selectedPool]) throw new Error('存档格式异常');
@@ -17,8 +22,8 @@
   const profile = () => database.activeKey ? database.profiles[database.activeKey] : null;
   function commit(next) {
     if (storageError) throw new Error(storageError);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
-    catch (_) { throw new Error('浏览器无法保存数据，本次操作未执行。请检查浏览器存储权限或剩余空间。'); }
+    try { storage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+    catch (_) { throw new Error(window.wishDesktop ? '本机存档无法保存，本次操作未执行。请检查数据目录的写入权限或剩余空间。' : '浏览器无法保存数据，本次操作未执行。请检查浏览器存储权限或剩余空间。'); }
     database = next;
   }
   function toast(message, error = false) {

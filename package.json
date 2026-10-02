@@ -1,0 +1,55 @@
+{
+  "name": "jieluo-wish",
+  "productName": "界络祈愿",
+  "version": "1.1.0",
+  "description": "界络祈愿校园桌面抽卡软件",
+  "author": "木火社",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "node scripts/build.cjs dir",
+    "dist": "node scripts/build.cjs dist",
+    "test": "node --test tests/engine.test.js tests/desktop-store.test.cjs",
+    "test:desktop": "node tests/desktop.test.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.0.12",
+    "playwright": "1.63.0",
+    "sharp": "0.35.5"
+  },
+  "build": {
+    "appId": "cn.muhuo.jieluo.wish",
+    "productName": "界络祈愿",
+    "asar": true,
+    "npmRebuild": false,
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["index.html", "styles.css", "app.js", "engine.js", "assets/**/*", "desktop/**/*", "package.json"],
+    "extraResources": [{ "from": "build/asset-manifest.json", "to": "asset-manifest.json" }],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icon.ico",
+      "executableName": "界络祈愿",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "artifactName": "界络祈愿 Setup.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "界络祈愿",
+      "uninstallDisplayName": "界络祈愿",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": ["zh_CN"],
+      "language": "2052",
+      "runAfterFinish": true
+    },
+    "portable": { "artifactName": "界络祈愿 Portable.exe" },
+    "publish": null
+  }
+}
