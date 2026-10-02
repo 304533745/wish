@@ -39,8 +39,21 @@ test('数学狸谱R使用独立五张卡面，英语卡面和旧收藏保留，�
   assert.ok(E.isValidProfile(p));
   assert.equal(E.getCardDisplay(p.collection['lipu:R']).image, 'assets/characters/lipu-r-04.png');
 });
-test('概率边界分别得到 SSR、SR、R', () => {
-  for (const [rate, rarity] of [[0, 'SSR'], [.019999, 'SSR'], [.02, 'SR'], [.199999, 'SR'], [.2, 'R'], [.999999, 'R']]) assert.equal(E.draw(fresh(), 'english', 1, sequence([rate, .1])).results[0].rarity, rarity);
+test('各卡池按 SSR 2%、SR 8%、R 90% 的概率边界抽取', () => {
+  for (const poolId of Object.keys(E.POOLS)) for (const [rate, rarity] of [[0, 'SSR'], [.019999, 'SSR'], [.02, 'SR'], [.099999, 'SR'], [.1, 'R'], [.199999, 'R'], [.2, 'R'], [.999999, 'R']]) assert.equal(E.draw(fresh(), poolId, 1, sequence([rate, .1])).results[0].rarity, rarity);
+});
+test('十连与十次单抽使用相同概率，各池均可连续十张R且没有SR保底', () => {
+  for (const poolId of Object.keys(E.POOLS)) {
+    const batch = E.draw(fresh(), poolId, 10, sequence([.15, .5]), () => '2026-10-02T00:00:00.000Z', () => 0);
+    let p = fresh(); const singles = [];
+    for (let i = 0; i < 10; i++) {
+      const outcome = E.draw(p, poolId, 1, sequence([.15, .5]), () => '2026-10-02T00:00:00.000Z', () => 0);
+      singles.push(...outcome.results); p = outcome.profile;
+    }
+    assert.ok(batch.results.every(card => card.rarity === 'R' && !card.guaranteed));
+    assert.deepEqual(batch.results, singles); assert.deepEqual(batch.profile, p);
+    assert.equal(batch.profile.tickets, 90); assert.equal(batch.profile.pools[poolId].pity, 10);
+  }
 });
 test('本期英语SSR仅出布蕾兹，R仍含狸谱，限定池保留狸谱SSR', () => {
   for (const characterRate of [0, .25, .5, .999999]) {
@@ -55,7 +68,7 @@ test('本期英语SSR仅出布蕾兹，R仍含狸谱，限定池保留狸谱SSR'
 });
 test('本期语文SR仅出独立狸谱卡面，SSR及保底仅出李岩，数学卡面和旧档保留', () => {
   for (const characterRate of [0, .25, .5, .999999]) {
-    const sr = E.draw(fresh(), 'chinese', 1, sequence([.1, characterRate]));
+    const sr = E.draw(fresh(), 'chinese', 1, sequence([.05, characterRate]));
     assert.equal(sr.results[0].characterId, 'lipu'); assert.equal(sr.results[0].rarity, 'SR');
     assert.equal(E.getCardDisplay(sr.results[0]).image, 'assets/characters/lipu-sr-chinese.png');
     const ssr = E.draw(fresh(), 'chinese', 1, sequence([.01, characterRate]));
@@ -65,18 +78,18 @@ test('本期语文SR仅出独立狸谱卡面，SSR及保底仅出李岩，数学
     assert.equal(guaranteed.results[0].characterId, 'liyan'); assert.equal(guaranteed.results[0].guaranteed, true);
     assert.equal(guaranteed.profile.pools.chinese.pity, 0);
   }
-  const chinese = E.draw(fresh(), 'chinese', 1, sequence([.1, .9])).profile;
-  const math = E.draw(JSON.parse(JSON.stringify(chinese)), 'math', 1, sequence([.1, 0]), undefined, () => .99);
+  const chinese = E.draw(fresh(), 'chinese', 1, sequence([.05, .9])).profile;
+  const math = E.draw(JSON.parse(JSON.stringify(chinese)), 'math', 1, sequence([.05, 0]), undefined, () => .99);
   assert.equal(E.getCardDisplay(math.results[0]).image, 'assets/characters/lipu-sr-02.png');
   assert.equal(math.results[0].fragments, 1);
   assert.equal(E.getCardDisplay(math.profile.collection['lipu:SR']).image, 'assets/characters/lipu-sr-chinese.png');
   assert.ok(E.isValidProfile(math.profile));
-  let legacy = E.draw(fresh(), 'event', 1, sequence([.1, .99])).profile;
+  let legacy = E.draw(fresh(), 'event', 1, sequence([.05, .99])).profile;
   legacy = E.draw(legacy, 'event', 1, sequence([.01, 0])).profile;
   legacy.pools.chinese = { ...legacy.pools.event }; legacy.pools.event = { total: 0, pity: 0 };
   legacy.history.forEach(item => { item.poolId = 'chinese'; });
   assert.ok(E.isValidProfile(legacy));
-  const next = E.draw(legacy, 'chinese', 1, sequence([.1, 0]));
+  const next = E.draw(legacy, 'chinese', 1, sequence([.05, 0]));
   assert.ok(next.profile.collection['liyan:SR']); assert.ok(next.profile.collection['lipu:SSR']);
   assert.equal(next.results[0].characterId, 'lipu'); assert.ok(E.isValidProfile(next.profile));
 });
@@ -88,22 +101,22 @@ test('本期数学SR仅出狸谱双卡面，自然SSR和80抽保底仅出乐游'
     assert.equal(guaranteed.results[0].characterId, 'leyou'); assert.equal(guaranteed.results[0].guaranteed, true);
     assert.equal(guaranteed.profile.pools.math.pity, 0);
   }
-  const first = E.draw(fresh(), 'math', 1, sequence([.1, .99]), undefined, () => 0);
+  const first = E.draw(fresh(), 'math', 1, sequence([.05, .99]), undefined, () => 0);
   assert.equal(first.results[0].characterId, 'lipu'); assert.equal(first.results[0].rarity, 'SR');
   assert.equal(E.getCardDisplay(first.results[0]).image, 'assets/characters/lipu-sr-01.png');
-  const second = E.draw(JSON.parse(JSON.stringify(first.profile)), 'math', 1, sequence([.1, 0]), undefined, () => .99);
+  const second = E.draw(JSON.parse(JSON.stringify(first.profile)), 'math', 1, sequence([.05, 0]), undefined, () => .99);
   assert.equal(E.getCardDisplay(second.results[0]).image, 'assets/characters/lipu-sr-02.png');
   assert.equal(second.results[0].duplicate, true); assert.equal(second.profile.fragments, 1);
   assert.equal(second.profile.collection['lipu:SR'].artIndex, 0); assert.ok(E.isValidProfile(second.profile));
 });
 test('早期数学乐游SR和狸谱SSR记录保留，继续抽卡使用本期范围', () => {
-  let legacy = E.draw(fresh(), 'event', 1, sequence([.1, .6])).profile;
+  let legacy = E.draw(fresh(), 'event', 1, sequence([.05, .6])).profile;
   legacy = E.draw(legacy, 'event', 1, sequence([.01, 0])).profile;
   legacy.pools.math = { ...legacy.pools.event }; legacy.pools.event = { total: 0, pity: 0 };
   legacy.history.forEach(item => { item.poolId = 'math'; delete item.artIndex; });
   Object.values(legacy.collection).forEach(card => { delete card.artIndex; });
   assert.ok(E.isValidProfile(legacy));
-  const next = E.draw(legacy, 'math', 1, sequence([.1, 0]));
+  const next = E.draw(legacy, 'math', 1, sequence([.05, 0]));
   assert.equal(next.results[0].characterId, 'lipu'); assert.equal(next.results[0].rarity, 'SR');
   assert.ok(next.profile.collection['leyou:SR']); assert.ok(next.profile.collection['lipu:SSR']);
   assert.ok(E.isValidProfile(next.profile));
@@ -111,24 +124,24 @@ test('早期数学乐游SR和狸谱SSR记录保留，继续抽卡使用本期范
 test('三款英语SR书签分别入库，同款重复转化1碎片，保存后仍有效', () => {
   let p = fresh();
   for (let i = 0; i < 3; i++) {
-    const outcome = E.draw(p, 'english', 1, sequence([.1, (i + .5) / 3]));
+    const outcome = E.draw(p, 'english', 1, sequence([.05, (i + .5) / 3]));
     assert.equal(outcome.results[0].characterId, null);
     assert.equal(outcome.results[0].bookmarkId, `english-bookmark-0${i + 1}`);
     assert.equal(outcome.results[0].duplicate, false); assert.equal(outcome.results[0].fragments, 0);
     p = outcome.profile;
   }
   assert.equal(Object.keys(p.collection).length, 3); assert.equal(p.pools.english.pity, 3);
-  const duplicate = E.draw(JSON.parse(JSON.stringify(p)), 'english', 1, sequence([.1, .1]));
+  const duplicate = E.draw(JSON.parse(JSON.stringify(p)), 'english', 1, sequence([.05, .1]));
   assert.equal(duplicate.results[0].duplicate, true); assert.equal(duplicate.results[0].fragments, 1);
   assert.equal(Object.keys(duplicate.profile.collection).length, 3); assert.ok(E.isValidProfile(duplicate.profile));
   assert.equal(E.getCardDisplay(duplicate.results[0]).name, '书签卡 01');
 });
 test('旧版英语角色SR存档仍可读取，继续抽卡得到新书签而非角色SR', () => {
-  const legacy = E.draw(fresh(), 'chinese', 1, sequence([.1, 0])).profile;
+  const legacy = E.draw(fresh(), 'chinese', 1, sequence([.05, 0])).profile;
   legacy.pools.english.total = 1; legacy.pools.english.pity = 1;
   legacy.pools.chinese.total = 0; legacy.pools.chinese.pity = 0; legacy.history[0].poolId = 'english';
   assert.ok(E.isValidProfile(legacy));
-  const next = E.draw(legacy, 'english', 1, sequence([.1, 0]));
+  const next = E.draw(legacy, 'english', 1, sequence([.05, 0]));
   assert.ok(next.profile.collection['lipu:SR']); assert.ok(next.profile.collection['english-bookmark-01:SR']);
   assert.equal(next.results[0].duplicate, false); assert.ok(E.isValidProfile(next.profile));
 });
@@ -168,7 +181,7 @@ test('各卡池保底独立，切池不清空，累计抽数汇总', () => {
 });
 test('首次入库，重复R与SR各得1碎片，重复SSR得2碎片', () => {
   let p = fresh();
-  for (const [rate, rarity, reward] of [[.5, 'R', 1], [.1, 'SR', 1], [.01, 'SSR', 2]]) {
+  for (const [rate, rarity, reward] of [[.5, 'R', 1], [.05, 'SR', 1], [.01, 'SSR', 2]]) {
     const first = E.draw(p, 'english', 1, sequence([rate, .1]));
     assert.equal(first.results[0].duplicate, false); assert.equal(first.results[0].fragments, 0);
     const second = E.draw(first.profile, 'english', 1, sequence([rate, .1]));
@@ -180,7 +193,7 @@ test('不同卡池的同角色同稀有度仍算重复，稀有度不同为新�
   let p = E.draw(fresh(), 'english', 1, sequence([.9, .1])).profile;
   const repeated = E.draw(p, 'math', 1, sequence([.9, .9]));
   assert.equal(repeated.results[0].characterId, 'lipu'); assert.equal(repeated.results[0].fragments, 1);
-  const newRarity = E.draw(repeated.profile, 'chinese', 1, sequence([.1, .1]));
+  const newRarity = E.draw(repeated.profile, 'chinese', 1, sequence([.05, .1]));
   assert.equal(newRarity.results[0].duplicate, false); assert.equal(Object.keys(newRarity.profile.collection).length, 2);
 });
 test('十连同批次重复即时转化', () => {

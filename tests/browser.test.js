@@ -133,7 +133,7 @@ const executablePath = process.env.WISH_BROWSER_PATH || 'C:/Program Files (x86)/
     await save('书签测试学生');
     for (let index = 0; index < 3; index++) {
       await page.evaluate(i => {
-        const values = [.1, (i + .5) / 3]; let call = 0;
+        const values = [.05, (i + .5) / 3]; let call = 0;
         Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(values[call++ % 2] * 4294967296)); return array; } });
       }, index);
       await page.locator('#draw-one').click();
@@ -145,7 +145,7 @@ const executablePath = process.env.WISH_BROWSER_PATH || 'C:/Program Files (x86)/
       await page.locator('#close-bookmark').click(); await close();
     }
     assert.equal(await content('collection-count'), '3'); assert.equal(await content('fragment-count'), '0');
-    await page.evaluate(() => { let call = 0; Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor([.1, .1][call++ % 2] * 4294967296)); return array; } }); });
+    await page.evaluate(() => { let call = 0; Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor([.05, .1][call++ % 2] * 4294967296)); return array; } }); });
     await one(); assert.equal(await content('fragment-count'), '1'); assert.equal(await content('collection-count'), '3');
     await page.reload(); assert.equal(await content('collection-count'), '3'); assert.equal(await content('fragment-count'), '1');
     await page.locator('#history-tab').click(); assert.match(await page.locator('#history-content').textContent(), /书签卡 01/); await page.locator('#collection-tab').click();
@@ -164,7 +164,7 @@ const executablePath = process.env.WISH_BROWSER_PATH || 'C:/Program Files (x86)/
     await page.screenshot({ path: path.join(artifacts, 'math-sr-desktop.png'), fullPage: true });
     for (let index = 0; index < 2; index++) {
       await page.evaluate(i => {
-        const values = [.1, .99, i === 0 ? 0 : .99]; let call = 0;
+        const values = [.05, .99, i === 0 ? 0 : .99]; let call = 0;
         Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(values[call++ % 3] * 4294967296)); return array; } });
       }, index);
       await page.locator('#draw-one').click();

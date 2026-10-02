@@ -68,7 +68,7 @@
     for (let i = 0; i < count; i++) {
       const guaranteed = next.pools[poolId].pity === PITY_LIMIT - 1;
       const rate = guaranteed ? 0 : sample(rng);
-      const rarity = guaranteed || rate < 0.02 ? 'SSR' : rate < 0.20 ? 'SR' : 'R';
+      const rarity = guaranteed || rate < 0.02 ? 'SSR' : rate < 0.10 ? 'SR' : 'R';
       const bookmarkCandidates = pool.rarityBookmarks?.[rarity];
       const candidates = bookmarkCandidates || pool.rarityCharacters?.[rarity] || pool.characters;
       const selectedId = candidates[Math.floor(sample(rng) * candidates.length)];
