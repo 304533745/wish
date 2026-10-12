@@ -199,6 +199,32 @@ const executablePath = process.env.WISH_BROWSER_PATH || 'C:/Program Files (x86)/
     await page.setViewportSize({ width: 390, height: 950 }); await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(artifacts, 'math-sr-mobile.png'), fullPage: true });
     check('数学展示区SSR/SR标注正确，狸谱双SR完整显示、重复兑换与刷新恢复，保底仅出乐游');
+    for (const poolId of ['english', 'math', 'chinese', 'event']) {
+      await save('首次十连概率测试-' + poolId); await page.locator(`[data-pool="${poolId}"]`).click();
+      await page.evaluate(() => {
+        let call = 0;
+        Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(([.05, .35][call++] ?? .5) * 4294967296)); return array; } });
+      });
+      await page.locator('#draw-ten').click();
+      assert.deepEqual(await page.locator('.rarity-badge').allTextContents(), ['R', 'R', 'R', 'SR', 'R', 'R', 'R', 'R', 'R', 'R']);
+      await close(); await page.reload();
+      const used = await page.evaluate(id => {
+        const db = JSON.parse(localStorage.getItem('jieluo-wish-v1')); return db.profiles[db.activeKey].pools[id].firstTenUsed;
+      }, poolId);
+      assert.equal(used, true); assert.equal(await content('total-count'), '10');
+      await page.evaluate(() => {
+        Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(.085 * 4294967296)); return array; } });
+      });
+      await page.locator('#draw-ten').click();
+      assert.ok((await page.locator('.rarity-badge').allTextContents()).every(rarity => rarity === 'SR')); await close();
+      await page.locator('#draw-one').click(); assert.equal(await page.locator('.rarity-badge').textContent(), 'R'); await close();
+    }
+    check('四池首次十连仅一张随机位置SR，刷新保存资格，后续十连使用旧概率、单抽使用新概率');
+    await page.setViewportSize({ width: 1440, height: 1080 });
+    await page.locator('#rules-button').click();
+    assert.match(await page.locator('#rules-dialog').textContent(), /SR 6%/);
+    assert.match(await page.locator('#rules-dialog').textContent(), /92% 全为 R/);
+    await page.locator('#rules-dialog').press('Escape');
     assert.deepEqual(errors, []); assert.deepEqual(failedRequests, []);
     check('无页面运行错误或资源加载失败');
     fs.writeFileSync(path.join(artifacts, 'browser-report.json'), JSON.stringify({ passed: checks.length, checks, errors, failedRequests }, null, 2));

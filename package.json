@@ -11,7 +11,7 @@
     "start": "electron .",
     "build": "node scripts/build.cjs dir",
     "dist": "node scripts/build.cjs dist",
-    "test": "node --test tests/engine.test.js tests/desktop-store.test.cjs",
+    "test": "node --test tests/engine.test.js tests/first-ten.test.cjs tests/desktop-store.test.cjs",
     "test:desktop": "node tests/desktop.test.cjs"
   },
   "devDependencies": {

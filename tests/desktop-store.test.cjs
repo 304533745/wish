@@ -19,6 +19,10 @@ test('中文用户路径下保存后重新实例化仍保留抽数、机会、�
   const restored = JSON.parse(new StateStore(dir).read());
   assert.deepEqual(restored, state); assert.equal(restored.profiles[state.activeKey].pools.math.pity, 10);
   assert.equal(restored.profiles[state.activeKey].tickets, 90);
+  assert.equal(restored.profiles[state.activeKey].pools.math.firstTenUsed, true);
+  assert.equal(restored.profiles[state.activeKey].pools.english.firstTenUsed, false);
+  const later = E.draw(restored.profiles[state.activeKey], 'math', 10, () => .05);
+  assert.equal(later.results.filter(card => card.rarity === 'SR').length, 10);
 });
 test('成功写入保留上一份备份；无效写入拒绝且原文件不变', () => {
   const store = new StateStore(fs.mkdtempSync(path.join(temp, '原子保存-'))), state = fixture(), first = JSON.stringify(state);

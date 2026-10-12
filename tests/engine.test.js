@@ -39,19 +39,21 @@ test('数学狸谱R使用独立五张卡面，英语卡面和旧收藏保留，�
   assert.ok(E.isValidProfile(p));
   assert.equal(E.getCardDisplay(p.collection['lipu:R']).image, 'assets/characters/lipu-r-04.png');
 });
-test('各卡池按 SSR 2%、SR 8%、R 90% 的概率边界抽取', () => {
-  for (const poolId of Object.keys(E.POOLS)) for (const [rate, rarity] of [[0, 'SSR'], [.019999, 'SSR'], [.02, 'SR'], [.099999, 'SR'], [.1, 'R'], [.199999, 'R'], [.2, 'R'], [.999999, 'R']]) assert.equal(E.draw(fresh(), poolId, 1, sequence([rate, .1])).results[0].rarity, rarity);
+test('各卡池单抽按 SSR 2%、SR 6%、R 92% 的概率边界抽取', () => {
+  for (const poolId of Object.keys(E.POOLS)) for (const [rate, rarity] of [[0, 'SSR'], [.019999, 'SSR'], [.02, 'SR'], [.079999, 'SR'], [.08, 'R'], [.099999, 'R'], [.1, 'R'], [.999999, 'R']]) assert.equal(E.draw(fresh(), poolId, 1, sequence([rate, .1])).results[0].rarity, rarity);
 });
-test('十连与十次单抽使用相同概率，各池均可连续十张R且没有SR保底', () => {
+test('各池首次十连均可连续十张R，计数和奖励与十次R单抽相同', () => {
   for (const poolId of Object.keys(E.POOLS)) {
-    const batch = E.draw(fresh(), poolId, 10, sequence([.15, .5]), () => '2026-10-02T00:00:00.000Z', () => 0);
+    const batch = E.draw(fresh(), poolId, 10, () => .5, () => '2026-10-02T00:00:00.000Z', () => 0);
     let p = fresh(); const singles = [];
     for (let i = 0; i < 10; i++) {
-      const outcome = E.draw(p, poolId, 1, sequence([.15, .5]), () => '2026-10-02T00:00:00.000Z', () => 0);
+      const outcome = E.draw(p, poolId, 1, () => .5, () => '2026-10-02T00:00:00.000Z', () => 0);
       singles.push(...outcome.results); p = outcome.profile;
     }
     assert.ok(batch.results.every(card => card.rarity === 'R' && !card.guaranteed));
-    assert.deepEqual(batch.results, singles); assert.deepEqual(batch.profile, p);
+    assert.deepEqual(batch.results, singles);
+    assert.equal(batch.profile.pools[poolId].firstTenUsed, true);
+    p.pools[poolId].firstTenUsed = true; assert.deepEqual(batch.profile, p);
     assert.equal(batch.profile.tickets, 90); assert.equal(batch.profile.pools[poolId].pity, 10);
   }
 });
@@ -169,7 +171,7 @@ test('十连跨越80抽边界，在正确抽数保底并计算余下进度', () 
 });
 test('十连中提前SSR重置，不会继续触发旧的80抽保底', () => {
   let p = fresh(); for (let i = 0; i < 75; i++) p = E.draw(p, 'english', 1, () => .9).profile;
-  const samples = [.9, .1, .01, .1, ...Array(16).fill(.9)]; let index = 0;
+  const samples = [.01, .15, ...Array(10).fill(.9)]; let index = 0;
   const outcome = E.draw(p, 'english', 10, () => samples[index++]);
   assert.equal(outcome.results[1].rarity, 'SSR'); assert.equal(outcome.results.some(item => item.guaranteed), false); assert.equal(outcome.profile.pools.english.pity, 8);
 });

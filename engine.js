@@ -23,6 +23,10 @@
   });
   const INITIAL_TICKETS = 100;
   const PITY_LIMIT = 80;
+  const SINGLE_RATES = Object.freeze({ SSR: 0.02, SR: 0.06, R: 0.92 });
+  const FIRST_TEN_RATES = SINGLE_RATES;
+  const LATER_TEN_RATES = Object.freeze({ SSR: 0.02, SR: 0.08, R: 0.90 });
+  function pickRarity(rate, rates) { return rate < rates.SSR ? 'SSR' : rate < rates.SSR + rates.SR ? 'SR' : 'R'; }
   function getCardArtworks(characterId, rarity, artworkPool) {
     return POOLS[artworkPool]?.cardImages?.[characterId]?.[rarity] || CHARACTERS[characterId]?.rarityImages?.[rarity];
   }
@@ -51,7 +55,7 @@
     return result;
   }
   function createProfile(info) {
-    return { info: validateIdentity(info), tickets: INITIAL_TICKETS, fragments: 0, total: 0, pools: Object.fromEntries(Object.keys(POOLS).map(id => [id, { total: 0, pity: 0 }])), collection: {}, history: [] };
+    return { info: validateIdentity(info), tickets: INITIAL_TICKETS, fragments: 0, total: 0, pools: Object.fromEntries(Object.keys(POOLS).map(id => [id, { total: 0, pity: 0, firstTenUsed: false }])), collection: {}, history: [] };
   }
   function randomUnit() {
     if (typeof crypto !== 'undefined' && crypto.getRandomValues) { const array = new Uint32Array(1); crypto.getRandomValues(array); return array[0] / 4294967296; }
@@ -65,10 +69,18 @@
     if (!isValidProfile(profile)) throw new Error('学生档案无效，请重新保存信息。');
     if (profile.tickets < count) throw new Error('抽卡机会不足，可使用能量碎片兑换。');
     const next = clone(profile), results = [], pool = POOLS[poolId];
+    // Old saves do not record batch size. Conservatively treat >=10 prior draws
+    // as having used the first ten; persist this decision before totals change.
+    for (const progress of Object.values(next.pools)) progress.firstTenUsed ??= progress.total >= 10;
+    const firstTen = count === 10 && !next.pools[poolId].firstTenUsed;
+    const batchRarity = firstTen ? pickRarity(sample(rng), FIRST_TEN_RATES) : null;
+    const rarePosition = firstTen && batchRarity !== 'R' ? Math.floor(sample(rng) * count) : -1;
     for (let i = 0; i < count; i++) {
       const guaranteed = next.pools[poolId].pity === PITY_LIMIT - 1;
-      const rate = guaranteed ? 0 : sample(rng);
-      const rarity = guaranteed || rate < 0.02 ? 'SSR' : rate < 0.10 ? 'SR' : 'R';
+      let rarity;
+      if (guaranteed) rarity = 'SSR';
+      else if (firstTen) rarity = i === rarePosition ? batchRarity : 'R';
+      else rarity = pickRarity(sample(rng), count === 1 ? SINGLE_RATES : LATER_TEN_RATES);
       const bookmarkCandidates = pool.rarityBookmarks?.[rarity];
       const candidates = bookmarkCandidates || pool.rarityCharacters?.[rarity] || pool.characters;
       const selectedId = candidates[Math.floor(sample(rng) * candidates.length)];
@@ -85,6 +97,7 @@
       if (!duplicate) next.collection[cardKey] = { characterId, ...(bookmarkId ? { bookmarkId } : {}), rarity, artIndex, ...artworkSource, obtainedAt: result.time };
       next.history.unshift(result); results.push(result);
     }
+    if (count === 10) next.pools[poolId].firstTenUsed = true;
     next.history = next.history.slice(0, 200);
     return { profile: next, results };
   }
@@ -98,11 +111,12 @@
       validateIdentity(profile.info);
       if (!['tickets', 'fragments', 'total'].every(key => Number.isSafeInteger(profile[key]) && profile[key] >= 0)) return false;
       if (!Object.keys(POOLS).every(id => Number.isSafeInteger(profile.pools?.[id]?.total) && profile.pools[id].total >= 0 && Number.isInteger(profile.pools[id].pity) && profile.pools[id].pity >= 0 && profile.pools[id].pity < PITY_LIMIT)) return false;
+      if (!Object.keys(POOLS).every(id => profile.pools[id].firstTenUsed === undefined || typeof profile.pools[id].firstTenUsed === 'boolean')) return false;
       if (Object.values(profile.pools).reduce((sum, p) => sum + p.total, 0) !== profile.total) return false;
       if (!profile.collection || typeof profile.collection !== 'object' || Array.isArray(profile.collection)) return false;
       if (!Object.entries(profile.collection).every(([key, card]) => isValidCard(card, key))) return false;
       return Array.isArray(profile.history) && profile.history.length <= 200 && profile.history.every(item => POOLS[item.poolId] && isValidCard(item, item.cardKey) && (item.bookmarkId ? POOLS[item.poolId].rarityBookmarks?.[item.rarity]?.includes(item.bookmarkId) : POOLS[item.poolId].characters.includes(item.characterId)) && Number.isSafeInteger(item.sequence) && item.sequence > 0 && item.sequence <= profile.total && typeof item.duplicate === 'boolean' && item.fragments === (item.duplicate ? (item.rarity === 'SSR' ? 2 : 1) : 0));
     } catch (_) { return false; }
   }
-  return Object.freeze({ CHARACTERS, BOOKMARKS, POOLS, INITIAL_TICKETS, PITY_LIMIT, getCardImage, getCardDisplay, identityKey, validateIdentity, createProfile, draw, exchange, isValidProfile });
+  return Object.freeze({ CHARACTERS, BOOKMARKS, POOLS, INITIAL_TICKETS, PITY_LIMIT, SINGLE_RATES, FIRST_TEN_RATES, LATER_TEN_RATES, getCardImage, getCardDisplay, identityKey, validateIdentity, createProfile, draw, exchange, isValidProfile });
 });
