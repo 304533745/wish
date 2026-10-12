@@ -36,9 +36,13 @@ async function closeResult(page) { await page.evaluate(() => document.getElement
 (async () => {
   let active;
   try {
-    active = await launch(); const { app, page } = active;
+    active = await launch(); let { app, page } = active;
     assert.equal(await page.evaluate(() => typeof require), 'undefined');
     assert.equal(await page.evaluate(() => typeof window.wishDesktop?.saveState), 'function');
+    await app.evaluate(async ({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows()[0];
+      for (let attempt = 0; attempt < 100 && !window.isVisible(); attempt++) await new Promise(resolve => setTimeout(resolve, 100));
+    });
     const loaded = await app.evaluate(({ app, BrowserWindow }) => ({ packaged: app.isPackaged, appPath: app.getAppPath(), userData: app.getPath('userData'), title: BrowserWindow.getAllWindows()[0].getTitle(), visible: BrowserWindow.getAllWindows()[0].isVisible() }));
     assert.ok(loaded.packaged); assert.equal(loaded.userData, data); assert.ok(loaded.appPath.endsWith('app.asar'));
     assert.equal(loaded.title, '界络祈愿'); assert.ok(loaded.visible);
@@ -53,6 +57,28 @@ async function closeResult(page) { await page.evaluate(() => document.getElement
       check(pool + ' 卡池十连、抽数、保底进度和原有动画正常');
     }
     assert.equal(await value(page, 'total-count'), '40'); assert.equal(await value(page, 'ticket-count'), '60');
+    for (const pool of ['english', 'math', 'chinese', 'event']) {
+      await save(page, '首次十连桌面测试-' + pool + '-' + Date.now());
+      await page.locator(`[data-pool="${pool}"]`).click();
+      await page.evaluate(() => {
+        let call = 0;
+        Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(([.05, .35][call++] ?? .5) * 4294967296)); return array; } });
+      });
+      await draw(page, 10);
+      assert.deepEqual(await page.locator('.rarity-badge').allTextContents(), ['R', 'R', 'R', 'SR', 'R', 'R', 'R', 'R', 'R', 'R']);
+      await closeResult(page);
+      const state = JSON.parse(fs.readFileSync(path.join(data, 'records.json'), 'utf8'));
+      assert.equal(state.profiles[state.activeKey].pools[pool].firstTenUsed, true);
+    }
+    await app.close(); active = null;
+    active = await launch(); ({ app, page } = active);
+    assert.equal(await value(page, 'total-count'), '10');
+    await page.evaluate(() => {
+      Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(.085 * 4294967296)); return array; } });
+    });
+    await draw(page, 10); assert.ok((await page.locator('.rarity-badge').allTextContents()).every(rarity => rarity === 'SR')); await closeResult(page);
+    await draw(page, 1); assert.equal(await page.locator('.rarity-badge').textContent(), 'R'); await closeResult(page);
+    check('四池首次十连仅一张随机位置SR，退出重开保存资格，后续十连与单抽使用各自概率');
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'build/asset-manifest.json'), 'utf8'));
     const packed = manifest.map(entry => ({ path: entry.path, sha256: crypto.createHash('sha256').update(asar.extractFile(loaded.appPath, entry.path.split('/').join(path.sep))).digest('hex') }));
     assert.deepEqual(packed, manifest.map(entry => ({ path: entry.path, sha256: entry.sha256 })));

@@ -39,10 +39,12 @@ async function close(active) {
     assert.equal(await page.evaluate(() => typeof require), 'undefined');
     const student = '免安装测试-' + Date.now();
     await page.locator('#teacher').fill('中文老师'); await page.locator('#classroom').fill('免安装班级'); await page.locator('#student').fill(student); await page.locator('.save-button').click();
-    await page.evaluate(() => { Object.defineProperty(crypto, 'getRandomValues', { value: array => { array.fill(0xffffffff); return array; } }); });
+    await page.evaluate(() => { Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(0xffffffff); return array; } }); });
     await page.locator('[data-pool="math"]').click(); await page.locator('#draw-ten').click();
     await page.locator('#finish-results').click();
     assert.equal((await page.locator('#total-count').textContent()).trim(), '10');
+    const stored = JSON.parse(fs.readFileSync(path.join(data, 'records.json'), 'utf8'));
+    assert.equal(stored.profiles[stored.activeKey].pools.math.firstTenUsed, true);
     const images = JSON.parse(fs.readFileSync(path.join(root, 'build/asset-manifest.json'), 'utf8')).filter(item => /\.(png|jpg|svg)$/i.test(item.path)).map(item => item.path);
     const failed = await page.evaluate(async files => (await Promise.all(files.map(async src => { const img = new Image(); img.src = src; try { await img.decode(); return null; } catch { return src; } }))).filter(Boolean), images);
     assert.deepEqual(failed, []);
@@ -51,6 +53,12 @@ async function close(active) {
     assert.equal(await active.page.locator('#student').inputValue(), student);
     assert.equal((await active.page.locator('#pity-label').textContent()).trim(), '10 / 80');
     assert.equal((await active.page.locator('#total-count').textContent()).trim(), '10');
+    await active.page.evaluate(() => {
+      Object.defineProperty(crypto, 'getRandomValues', { configurable: true, value: array => { array.fill(Math.floor(.085 * 4294967296)); return array; } });
+    });
+    await active.page.locator('#draw-ten').click();
+    assert.ok((await active.page.locator('.rarity-badge').allTextContents()).every(rarity => rarity === 'SR'));
+    await active.page.locator('#finish-results').click();
     await close(active); active = null;
     fs.writeFileSync(path.join(__dirname, 'artifacts', 'portable-report.json'), JSON.stringify({ success: true, data, temp, checks: ['中文路径免安装启动，无 Node PATH', '数学十连及全部39图片可用', '关闭再开保留档案、抽数与保底', '应用与免安装包装器正常退出'] }, null, 2));
     console.log('PASS 免安装版中文路径启动、抽卡、全部图片、重启持久化及正常退出');

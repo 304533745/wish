@@ -6,7 +6,7 @@ $env:TEMP = Join-Path $testRoot '中文临时目录'
 $env:TMP = $env:TEMP
 $env:PATH = "$env:SystemRoot\System32"
 Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-$process = Start-Process -FilePath $exe -PassThru
+$process = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru
 try {
   for ($i = 0; $i -lt 100; $i++) { $process.Refresh(); if ($process.MainWindowHandle -ne 0 -and $process.MainWindowTitle -eq '界络祈愿') { break }; Start-Sleep -Milliseconds 200 }
   if ($process.MainWindowHandle -eq 0 -or $process.MainWindowTitle -ne '界络祈愿') { throw "普通启动窗口异常：handle=$($process.MainWindowHandle)，title=$($process.MainWindowTitle)" }
